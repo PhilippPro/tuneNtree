@@ -1,0 +1,245 @@
+%%%%%%%%%%%%%%%%%%%%%%% file template.tex %%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% This is a general template file for the LaTeX package SVJour3
+% for Springer journals.          Springer Heidelberg 2010/09/16
+%
+% Copy it to a new file with a new name and use it as the basis
+% for your article. Delete % signs as needed.
+%
+% This template includes a few options for different layouts and
+% content for various journals. Please consult a previous issue of
+% your journal as needed.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% First comes an example EPS file -- just ignore it and
+% proceed on the \documentclass line
+% your LaTeX will extract the file if required
+\begin{filecontents*}{example.eps}
+%!PS-Adobe-3.0 EPSF-3.0
+%%BoundingBox: 19 19 221 221
+%%CreationDate: Mon Sep 29 1997
+%%Creator: programmed by hand (JK)
+%%EndComments
+gsave
+newpath
+  20 20 moveto
+  20 220 lineto
+  220 220 lineto
+  220 20 lineto
+closepath
+2 setlinewidth
+gsave
+  .4 setgray fill
+grestore
+stroke
+grestore
+\end{filecontents*}
+%
+\RequirePackage{fix-cm}
+%
+%\documentclass{svjour3}                     % onecolumn (standard format)
+%\documentclass[smallcondensed]{svjour3}     % onecolumn (ditto)
+\documentclass[smallextended]{svjour3}       % onecolumn (second format)
+%\documentclass[twocolumn]{svjour3}          % twocolumn
+%
+\smartqed  % flush right qed marks, e.g. at end of proof
+%
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage[hidelinks=true,colorlinks=true]{hyperref}
+\usepackage{xcolor}
+\hypersetup{
+    colorlinks,
+    linkcolor={red!50!black},
+    citecolor={blue!50!black},
+    urlcolor={blue!80!black}
+}
+
+\usepackage{natbib}
+%\bibliographystyle{plainnat}
+\bibliographystyle{spbasic}      % basic style, author-year citations
+
+%
+% \usepackage{mathptmx}      % use Times fonts if available on your TeX system
+%
+% insert here the call for the packages your document requires
+%\usepackage{latexsym}
+% etc.
+%
+% please place your own definitions here and don't use \def but
+% \newcommand{}{}
+%
+% Insert the name of "your journal" with
+% \journalname{myjournal}
+%
+\begin{document}
+
+\title{To tune or not to tune the number of trees in random forest?%\thanks{Grants or other notes
+%about the article that should go on the front page should be
+%placed here. General acknowledgments should be placed at the end of the article.}
+}
+%\subtitle{Do you have a subtitle?\\ If so, write it here}
+
+%\titlerunning{Short form of title}        % if too long for running head
+
+\author{Philipp Probst        \and
+        Anne-Laure Boulesteix %etc.
+}
+
+%\authorrunning{Short form of author list} % if too long for running head
+
+\institute{Philipp Probst \at
+              Institut f{\"u}r medizinische Informationsverarbeitung, Biometrie und Epidemiologie \\
+              Marchioninistr. 15, 81377 München\\
+              Tel.: +49-89-440074439\\
+              \email{probst@ibe.med.uni-muenchen.de}           %  \\
+%             \emph{Present address:} of F. Author  %  if needed
+           \and
+           Anne-Laure Boulesteix \at
+              Institut f{\"u}r medizinische Informationsverarbeitung, Biometrie und Epidemiologie \\
+              Marchioninistr. 15, 81377 München\\
+              Tel.: +49-89-440077598 \\
+              \email{boulesteix@ibe.med.uni-muenchen.de}         
+}
+
+\date{Received: date / Accepted: date}
+% The correct dates will be entered by the editor
+
+
+<<initial_example, echo = FALSE, fig.height= 3.6, message = FALSE, fig.align = "center",  fig.cap = "Mean OOB error rate curves for OpenML dataset 938 (left) and OpenML dataset 862 (right). The curves are averaged over 1000 independent runs of random forest with different seeds.">>=
+library(mlr)
+library(OpenML)
+library(batchtools)
+library(plyr)
+
+dir =  "../.."
+setwd(paste0(dir,"/results"))
+load("graphic_results.RData")
+
+par(mfrow = c(1, 2), mar = c(3, 3.3, 2, 0) + 0.1)
+# Dataset 36
+plot(res1, type = "l", main = "Dataset with OpenML ID 938", xlab = "number of trees", ylab = "mean OOB error rate", mgp = c(2,1,0))
+# Dataset 111
+plot(res2, type = "l", main = "Dataset with OpenML ID 862", xlab = "number of trees", ylab = "mean OOB error rate", mgp = c(2,1,0))
+  @
+
+
+<<error_curves, echo = FALSE, fig.height= 3.6, message = FALSE, fig.align = "center",  fig.cap = "abc-Katze">>=
+# a function to compute P(X>0.5*T) + 0.5*P(X=0.5*T)
+oobi = function(T, pi) {
+  if (T %% 2 == 1) { # is T an odd number?
+    return(pbinom(floor(0.5*T), size = T , prob = pi, lower.tail = FALSE))
+  } else {
+    return(pbinom(floor(0.5*T), size = T , prob = pi, lower.tail = FALSE) + 0.5 *dbinom(floor(0.5*T), size = T, prob = pi))
+  }
+}
+
+# a function to plot E(OOB(t)) for different number of trees t (included in vector Tvec) for different pi's (included in vector pivec)
+plotoob = function(Tvec, pivec, adj = 1, colores) {
+  mat = matrix(NA, length(pivec), length(Tvec))
+  plot(c(0, max(Tvec)), c(0, 1), type = "n", xlab = "number of trees", ylab = expression('E(e'[i]*'(T))'), mgp = c(2,1,0))
+  for (i in 1:length(pivec)) {
+    y = numeric(length(Tvec))
+    for (j in 1:length(Tvec)) {
+      mat[i, j] = oobi(round(Tvec[j]*adj) , pivec[i])
+    }
+    legend(310, 0.94, legend = c(expression(epsilon[i]), pivec), col = c("white", colores), lty = 1, bg = "white")
+    lines(Tvec, mat[i, ], col = colores[i])
+  }
+  return(mat)
+}
+par(mfrow = c(1, 2), mar = c(3, 3.3, 0, 0) + 0.1)
+pivec = rev(seq(0.05,0.95,by=0.1))
+library(RColorBrewer)
+colores = c(brewer.pal(n = 7, name = "Dark2"), brewer.pal(n = 3, name = "Paired"))
+mat_rf = plotoob(Tvec = seq(1, 500, 1), pivec=pivec, adj = 1, colores = colores)
+#dev.off()
+
+# PDF with aggregated epsilon_i
+#pdf(file = paste0("/home/probst/Paper/Ntree_RandomForest/Paper/", "error_curves.pdf"), width = 12, height = 7)
+#par(mfrow = c(1,1))
+pivec = rev(seq(0.05,0.95,by=0.05))
+library(RColorBrewer)
+colores = c(brewer.pal(n = 8, name = "Dark2"), brewer.pal(n = 11, name = "Paired"))
+
+Tvec = seq(1, 500, 1)
+mat = matrix(NA, length(pivec), length(Tvec))
+for (i in 1:length(pivec)) {
+  y = numeric(length(Tvec))
+  for (j in 1:length(Tvec)) {
+    mat[i, j] = oobi(round(Tvec[j]) , pivec[i])
+  }
+}
+plot(Tvec, colMeans(mat[c(8, 9, 16,17,18,19),]), mgp = c(2,1,0), type = "l", xlab = "number of trees", ylab = expression(sum('E(e'[i]*'(T))')))
+legend(450, 0.95, legend = c(expression(epsilon[i]), pivec), col = c("white", colores), lty = 1, bg = "white")
+@
+
+<<normal, echo = FALSE, fig.height= 3.3, message = FALSE, fig.align = "center",  fig.cap = "Histogram of the probability estimation of a random forest with 100000 trees">>=
+# Dataset 125
+dir =  "../.."
+setwd(paste0(dir,"/results"))
+load("graphic_results.RData")
+load("clas.RData")
+library(mlr)
+library(randomForest)
+
+par(mfrow = c(1, 2), mar = c(3, 3.3, 2, 0) + 0.1)
+plot(res3, type = "l", main = "Averaged OOB error rate curve", xlab = "number of trees", ylab = "mean OOB error rate", mgp = c(2,1,0))
+
+oml.dset = getOMLDataSet(clas[160,]$data.id)
+task = convertOMLDataSetToMlr(oml.dset)
+type = getTaskType(task)
+target = task$task.desc$target
+data = droplevels(oml.dset$data) # drop not existing levels
+if(is.factor(data[, target]) == FALSE)
+  data[, target] = as.factor(data[, target])
+mod = randomForest(as.formula(paste0(target, "~.")), data = data, ntree = 10000, nodesize = 1)
+preds = predict(mod, type = "prob")
+cols = data[,target] != "tested_negative"
+probs = c(preds[which(cols == TRUE), 1], preds[which(cols == FALSE), 2])
+hist(probs, main = "Histogram", xlab = "Probabilities for false classification", mgp = c(2,1,0))
+@
+
+
+<<histogram, echo = FALSE, fig.height= 3.3, message = FALSE, fig.align = "center",  fig.cap = "Histogram of the probability estimation of a random forest with 100000 trees">>=
+dir =  "../.."
+setwd(paste0(dir,"/results"))
+load("clas.RData")
+library(OpenML)
+library(randomForest)
+
+par(mfrow = c(1, 2), mar = c(3, 3.3, 2, 0) + 0.1)
+oml.dset = getOMLDataSet(clas[36,]$data.id)
+task = convertOMLDataSetToMlr(oml.dset)
+type = getTaskType(task)
+target = task$task.desc$target
+data = droplevels(oml.dset$data) # drop not existing levels
+if(is.factor(data[, target]) == FALSE)
+  data[, target] = as.factor(data[, target])
+mod = randomForest(as.formula(paste0(target, "~.")), data = data, ntree = 100000, nodesize = 1)
+preds = predict(mod, type = "prob")
+cols = data[,target] != "P"
+probs = c(preds[which(cols == TRUE), 1], preds[which(cols == FALSE), 2])
+hist(probs, main = "Dataset with OpenML ID 938", xlab = "Probabilities for false classification", mgp = c(2,1,0))
+
+oml.dset = getOMLDataSet(clas[64,]$data.id)
+task = convertOMLDataSetToMlr(oml.dset)
+type = getTaskType(task)
+target = task$task.desc$target
+data = droplevels(oml.dset$data) # drop not existing levels
+if(is.factor(data[, target]) == FALSE)
+  data[, target] = as.factor(data[, target])
+mod = randomForest(as.formula(paste0(target, "~.")), data = data, ntree = 10000, nodesize = 1)
+preds = predict(mod, type = "prob")
+cols = data[,target] != "P"
+probs = c(preds[which(cols == TRUE), 1], preds[which(cols == FALSE), 2])
+hist(probs, main = "Dataset with OpenML ID 862", xlab = "Probabilities for false classification", mgp = c(2,1,0))
+#hist(probs[probs > 0.1 & probs < 0.9], main =  "ID 949: Scaled on [0.1,0.9]", xlab = "Probabilities for correct classification", mgp = c(2,1,0))
+# wie erwartet
+@
+
+
+
+\end{document}

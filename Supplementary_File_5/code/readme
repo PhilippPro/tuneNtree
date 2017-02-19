@@ -1,0 +1,9 @@
+# Overview about the code files
+
+# 1. Get datasets via "datasets.R" Saves the dataset ids in "../results/clas.RData" and "../results/reg.RData"
+# 2. Create benchmark data with "ntree.R"; some important definitions for this script are in "ntree_defs.R"; 
+#     Moreover the OOBCurve package has to be installed from the "OOBCurve" folder
+# 3. Analysis of the benchmark data in "analysis.R"
+# 4. Create graphics for the paper in "graphics.Rnw"
+
+
