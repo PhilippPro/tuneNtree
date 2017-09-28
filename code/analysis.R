@@ -1,5 +1,7 @@
 library(mlr)
 library(OpenML)
+require(devtools)
+install_version("batchtools", version = "0.9.0", repos = "http://cran.us.r-project.org")
 library(batchtools)
 library(plyr)
 
