@@ -1,9 +1,11 @@
 # Overview about the code files
 
-# 1. Get datasets via "datasets.R" Saves the dataset ids in "../results/clas.RData" and "../results/reg.RData"
+# 1. Get datasets via "datasets.R" Saves the dataset ids in "../results/clas.RData" and "../results/reg.RData" (This script will provide other datasets 
+than the ones from the study, as the OpenML database is changing; load "/results/clas.RData" and "/results/reg.RData" to get the datasets of the study)
 # 2. Create benchmark data with "ntree.R"; some important definitions for this script are in "ntree_defs.R"; 
-#     Moreover the OOBCurve package has to be installed from the "OOBCurve" folder
-# 3. Analysis of the benchmark data in "analysis.R"
-# 4. Create graphics for the paper in "graphics.Rnw"
+#     Moreover the "OOBCurve" package has to be installed
+# 3. Analysis of the raw data in "analysis_raw_results.R" (steps 1. and 2. are necessary)
+# 4. Analysis of the benchmark data in "analysis.R" (can be run without steps 1., 2., 3.)
+# 5. Create graphics for the paper in "paper_graphics/graphics.Rnw"
 
 

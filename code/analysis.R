@@ -1,190 +1,32 @@
-library(mlr)
-library(OpenML)
-require(devtools)
-install_version("batchtools", version = "0.9.0", repos = "http://cran.us.r-project.org")
-library(batchtools)
-library(plyr)
-
-dir =  "../Supplementary_File_5"
-setwd(paste0(dir,"/results"))
-options(batchtools.progress = TRUE)
-
-regis = loadRegistry("ntree")
-
-# Classification
-# Binary
-bin = which(clas_small$number.of.classes == 2)
-res_bin = reduceResultsList(ids = bin, reg = regis)
-
-# Averaging of the results
-res_bin_mean = list()
-
-done = !sapply(res_bin, is.null)
-for(i in 1:length(res_bin)) { # slow but easy to understand;
-  print(i)
-  res_bin_mean[[i]] = matrix(NA, 2000, 5)
-  
-  if(isTRUE(done[i])) {
-    res = res_bin[[i]]
-    nas = lapply(res, `[[`, 3)
-    nas = pmax(10, sapply(nas, function(x) max(which(is.na(x)))))
-    
-    for(j in 1:5){
-      resj = lapply(res, `[[`, j)
-      resj = as.data.frame(resj[1:1000], col.names = 1:1000)
-      for(k in 1:ncol(resj))
-        resj[1:nas[k], k] = NA
-      resj = apply(resj, 1, function(x) mean(x, na.rm = T))
-      res_bin_mean[[i]][, j] =  resj
-    }
-  }
-}
-
-measure_names_bin = c("error rate", "balanced error rate", "Brier score", "logarithmic loss", "AUC")
-pdf("../results/graphics/binary_ntree.pdf", width = 9, height = 6)
-for(i in 1:length(res_bin)) {
-  if(isTRUE(done[i])) {
-    par(mfrow = c(2, 2), mar = c(3, 3.3, 2, 0) + 0.1)
-    main = paste("Binary classification ",i," // OpenML ID", OMLDATASETS[bin[i]])
-    for(j in c(1,3:5)){ # omit balanced error rate
-      plot(res_bin_mean[[i]][1:500, j], type = "l", main =  "", 
-        xlab = "Number of trees", ylab = paste("Mean OOB", measure_names_bin[j]), mgp = c(2,1,0))
-    }
-    mtext(main, side = 3, line = -1.5, outer = TRUE)
-  }
-}
-dev.off()
-
-# Examples for the paper (with first trees included)
-res = reduceResultsList(ids = 36, reg = regis)
-nas = lapply(res[[1]], `[[`, 3)
-nas = sapply(nas, function(x) max(which(is.na(x))))
-res = lapply(res[[1]], `[[`, 1)
-res = as.data.frame(res[1:1000], col.names = 1:1000)
-for(i in 1:ncol(res))
-  res[1:nas[i], i] = NA
-res1 = apply(res, 1, function(x) mean(x, na.rm = T))
-
-res = reduceResultsList(ids = 64, reg = regis)
-nas = lapply(res[[1]], `[[`, 3)
-nas = sapply(nas, function(x) max(which(is.na(x))))
-res = lapply(res[[1]], `[[`, 1)
-res = as.data.frame(res[1:1000], col.names = 1:1000)
-for(i in 1:ncol(res))
-  res[1:nas[i], i] = NA
-res2 = apply(res, 1, function(x) mean(x, na.rm = T))
-
-res = reduceResultsList(ids = 160, reg = regis)
-nas = lapply(res[[1]], `[[`, 3)
-nas = sapply(nas, function(x) max(which(is.na(x))))
-res = lapply(res[[1]], `[[`, 1)
-res = as.data.frame(res[1:1000], col.names = 1:1000)
-for(i in 1:ncol(res))
-  res[1:nas[i], i] = NA
-res3 = apply(res, 1, function(x) mean(x, na.rm = T))
-
-save(res1, res2, res3, file = "graphic_results.RData")
-
-# Multiclass
-multi = which(clas_small$number.of.classes != 2)
-res_multi = reduceResultsList(ids = multi, reg = regis)
-
-# Averaging of the results
-res_multi_mean = list()
-
-done = !sapply(res_multi, is.null)
-for(i in 1:length(res_multi)) { # slow but easy to understand
-  print(i)
-  res_multi_mean[[i]] = matrix(NA, 2000, 5)
-  
-  if(isTRUE(done[i])) {
-    res = res_multi[[i]]
-    nas = lapply(res, `[[`, 3)
-    nas = pmax(10, sapply(nas, function(x) max(which(is.na(x)))))
-    
-    for(j in 1:5){
-      resj = lapply(res, `[[`, j)
-      resj = as.data.frame(resj[1:1000], col.names = 1:1000)
-      for(k in 1:ncol(resj))
-        resj[1:nas[k], k] = NA
-      resj = apply(resj, 1, function(x) mean(x, na.rm = T))
-      res_multi_mean[[i]][, j] =  resj
-    }
-  }
-}
-
-measure_names_multi = c("error rate", "balanced error rate", "brier score", "logarithmic loss", "AUC")
-
-pdf("../results/graphics/multiclass_ntree.pdf", width = 9, height = 6)
-for(i in 1:length(res_multi)) {
-  if(isTRUE(done[i])) {
-    par(mfrow = c(2, 2), mar = c(3, 3.3, 2, 0) + 0.1)
-    main = paste("Multiclass classification ",i," // OpenML ID", OMLDATASETS[multi[i]])
-    for(j in c(1,3:5)){ # omit balanced error rate
-      plot(res_multi_mean[[i]][1:500, j], type = "l", main =  "", 
-        xlab = "Number of trees", ylab = paste("Mean OOB", measure_names_multi[j]), mgp = c(2,1,0))
-    }
-    mtext(main, side = 3, line = -1.5, outer = TRUE)
-  }
-}
-dev.off()
-# Effects at the beginning of the curves can partially be explained because of the 
-# smaller data basis -> higher variance
-
-
-# Regression
-res_reg = reduceResultsList(ids = 194:312, reg = regis)
-
-# Averaging of the results
-res_reg_mean = list()
-
-done = !sapply(res_reg, is.null)
-for(i in 1:length(res_reg)) { # slow but easy to understand
-  print(i)
-  res_reg_mean[[i]] = matrix(NA, 2000, 5)
-  res = res_reg[[i]]
-  nas = lapply(res, `[[`, 3)
-  nas = pmax(10, sapply(nas, function(x) max(which(is.na(x)))))
-  
-  for(j in 1:5){
-    resj = lapply(res, `[[`, j)
-    resj = as.data.frame(resj[1:1000], col.names = 1:1000)
-    for(k in 1:ncol(resj))
-      resj[1:nas[k], k] = NA
-    resj = apply(resj, 1, function(x) mean(x, na.rm = T))
-    res_reg_mean[[i]][, j] =  resj
-  }
-}
-
-measure_names_reg = c("mse", "mae", "medae", "medse")
-
-pdf("../results/graphics/regression_ntree.pdf", width = 9, height = 6)
-for(i in 1:length(res_reg)) {
-  par(mfrow = c(2, 2), mar = c(3, 3.3, 2, 0) + 0.1)
-  main = paste("Regression ",i," // OpenML ID", OMLDATASETS[c(194:312)[i]])
-  for(j in c(1:2,4, 3)){ # omit R-Squared which is equivalen to MSE
-    plot(res_reg_mean[[i]][1:500, j], type = "l", main =  "", 
-      xlab = "Number of trees", ylab = paste("Mean OOB", measure_names_reg[j]), mgp = c(2,1,0))
-  }
-  mtext(main, side = 3, line = -1.5, outer = TRUE)
-}
-dev.off()
-
-save(res_bin_mean, res_multi_mean, res_reg_mean, file = "/home/probst/Paper/Ntree_RandomForest/experiments/results/results.RData")
-load("../results/results.RData")
-
 # Analyze the results...
+load("./results/results.RData")
+
+
+# Dataset complexity analysis
+load(paste(dir,"./results/clas.RData", sep = ""))
+load(paste(dir,"./results/reg.RData", sep = ""))
+tasks = rbind(clas_small, reg_small)
+plot(tasks$number.of.instances, tasks$number.of.features, ylim = c(0,200))
 
 # For the oob error rate
+
+# How many times growing OOBCurves?
 # Difference from bottom to the end
+# Binary classification
 n_bin = length(res_bin_mean)
-diffs = numeric(n_bin)
-diffs2 = numeric(n_bin)
+diffs = diffs2 = diffs3 = diffs4 = diffs5 = numeric(n_bin)
+diffs4_auc = diffs5_auc = numeric(n_bin)
 for (i in 1:n_bin) {
   print(i)
   resi = res_bin_mean[[i]]
-  diffs[i] = resi[2000, 1] - min(resi[10:150, 1])
-  diffs2[i] = min(resi[151:2000,]) - min(resi[10:150, 1])
+  diffs[i] = resi[2000, 1] - min(resi[11:250, 1])
+  diffs2[i] = min(resi[251:2000,]) - min(resi[11:250, 1])
+  diffs3[i] = resi[2000, 1] - min(resi[11:2000, 1])
+  diffs4[i] = resi[11, 1] - resi[250, 1]
+  diffs5[i] = resi[250, 1] - resi[2000, 1] 
+  
+  diffs4_auc[i] = resi[11, 5] - resi[250, 5]
+  diffs5_auc[i] = resi[250, 5] - resi[2000, 5] 
 }
 
 par(mfrow = c(1, 1))
@@ -194,11 +36,91 @@ sum(diffs > 0.005, na.rm = T) / length(diffs2)
 sum(diffs[1:75] > 0.005, na.rm = T)
 sum(diffs[76:149] > 0.005, na.rm = T)
 
+mean(diffs)
+hist(diffs)
+
 boxplot(diffs2)
 sum(diffs2 > 0.001, na.rm = T)
 sum(diffs2 < -0.001, na.rm = T)
 sum(diffs2[1:75] > 0.001, na.rm = T)
 sum(diffs2[76:149] > 0.001, na.rm = T)
+
+mean(diffs4)
+mean(diffs5)
+hist(diffs5)
+
+mean(diffs4_auc)
+mean(diffs5_auc)
+# Difference from bottom to the end
+# Multiclass classification
+n_bin = length(res_multi_mean)
+diffs = diffs2 = diffs3 = diffs4 = diffs5 = numeric(n_bin)
+diffs4_auc = diffs5_auc = numeric(n_bin)
+for (i in 1:n_bin) {
+  print(i)
+  resi = res_multi_mean[[i]]
+  diffs[i] = resi[2000, 1] - min(resi[11:250, 1])
+  diffs2[i] = min(resi[251:2000,]) - min(resi[11:250, 1])
+  diffs3[i] = resi[2000, 1] - min(resi[11:2000, 1])
+  diffs4[i] = resi[11, 1] - resi[250, 1]
+  diffs5[i] = resi[250, 1] - resi[2000, 1] 
+  
+  diffs4_auc[i] = resi[11, 5] - resi[250, 5]
+  diffs5_auc[i] = resi[250, 5] - resi[2000, 5] 
+}
+
+par(mfrow = c(1, 1))
+boxplot(diffs)
+sum(diffs > 0.005, na.rm = T)
+sum(diffs > 0.005, na.rm = T) / length(diffs2)
+sum(diffs[1:22] > 0.005, na.rm = T)
+sum(diffs[22:45] > 0.005, na.rm = T)
+
+boxplot(diffs2)
+sum(diffs2 > 0.001, na.rm = T)
+sum(diffs2 < -0.001, na.rm = T)
+sum(diffs2[1:75] > 0.001, na.rm = T)
+sum(diffs2[76:149] > 0.001, na.rm = T)
+
+mean(diffs4, na.rm = T)
+mean(diffs5, na.rm = T)
+mean(diffs4_auc, na.rm = T)
+mean(diffs5_auc, na.rm = T)
+
+# Regression
+n_reg = length(res_reg_mean)
+diffs4 = diffs5 = diffs6_medae = diffs6_medse = diffs7_medae = diffs7_medse = numeric(n_reg)
+for (i in 1:n_reg) {
+  print(i)
+  resi = res_reg_mean[[i]]
+  diffs4[i] = resi[11, 5] - resi[250, 5]
+  diffs5[i] = resi[250, 5] - resi[2000, 5] 
+  diffs5[i] = resi[250, 5] - resi[2000, 5] 
+  diffs6_medae[i] = min(resi[11, 3]) - resi[2000, 3]
+  diffs6_medse[i] = min(resi[11, 4]) - resi[2000, 4]
+  diffs7_medae[i] = min(resi[11:250, 3]) - resi[2000, 3]
+  diffs7_medse[i] = min(resi[11:250, 4]) - resi[2000, 4]
+}
+
+mean(diffs4, na.rm = T)
+mean(diffs5, na.rm = T)
+
+mean(diffs6_medse > 0, na.rm = T)
+mean(diffs6_medae > 0, na.rm = T)
+
+mean(diffs7_medse, na.rm = T)
+mean(diffs7_medae, na.rm = T)
+
+mean(diffs7_medse < 0, na.rm = T)
+mean(diffs7_medae < 0, na.rm = T)
+
+
+
+sum(diffs7_medae[1:60] < 0, na.rm = T)
+sum(diffs7_medae[61:119] < 0, na.rm = T)
+mean(diffs7_medse < 0, na.rm = T)
+sum(diffs7_medse[1:60] < 0, na.rm = T)
+sum(diffs7_medse[61:119] < 0, na.rm = T)
 
 # What is the average improvement from training 2000 instead of 11 trees
 improvement_bin = matrix(NA, length(res_bin_mean), ncol(res_bin_mean[[i]]))
@@ -208,7 +130,7 @@ for (i in 1:length(res_bin_mean)) {
 }
 apply(improvement_bin, 2, mean)
 
-improvement_multi = matrix(NA, length(res_multi_mean), ncol(res_multi_mean[[i]]))
+improvement_multi = matrix(NA, length(res_multi_mean), ncol(res_multi_mean[[1]]))
 for (i in c(1:44)) {
   print(i)
   improvement_multi[i, ] = res_multi_mean[[i]][2000, ] - res_multi_mean[[i]][11,]
@@ -223,6 +145,9 @@ for (i in 1:length(res_reg_mean)) {
 apply(improvement_reg, 2, mean)[5]
 
 
+mean(improvement_bin[,5])
+mean((diffs4_auc + diffs5_auc))
+mean(diffs4_auc)
 
 # Correlation between the curves
 # binary
@@ -245,6 +170,7 @@ cor_pearson_bin[1, 1:4] = cor_kendall_bin[1, 1:4]
 cor_pearson_bin[2, 2:4] = cor_kendall_bin[2, 2:4] 
 cor_pearson_bin[3, 3:4] = cor_kendall_bin[3, 3:4] 
 cor_pearson_bin[4, 4] = cor_kendall_bin[4, 4] 
+measure_names_bin = c("error rate", "balanced error rate", "Brier score", "logarithmic loss", "AUC")
 colnames(cor_pearson_bin) = rownames(cor_pearson_bin) =  measure_names_bin[c(1,3,4,5)]
 library(xtable)
 xtable(cor_pearson_bin, caption = "Linear (bottom-left) and rank (top-right) correlation results for all dataset", 
@@ -264,12 +190,13 @@ cor_pearson_multi = apply(simplify2array(cor_pearson_multi_list[done]), 1:2, mea
 cor_kendall_multi = apply(simplify2array(cor_kendall_multi_list[done]), 1:2, mean)
 cor_spearman_multi = apply(simplify2array(cor_spearman_multi_list[done]), 1:2, mean)
 apply(simplify2array(cor_kendall_multi_list[done]), 1:2, sd)
-  
+
 cor_pearson_multi = data.frame(cor_pearson_multi)
 cor_pearson_multi[1, 1:4] = cor_kendall_multi[1, 1:4] 
 cor_pearson_multi[2, 2:4] = cor_kendall_multi[2, 2:4] 
 cor_pearson_multi[3, 3:4] = cor_kendall_multi[3, 3:4] 
 cor_pearson_multi[4, 4] = cor_kendall_multi[4, 4] 
+measure_names_multi = c("error rate", "balanced error rate", "brier score", "logarithmic loss", "AUC")
 colnames(cor_pearson_multi) = rownames(cor_pearson_multi) =  measure_names_multi[c(1,3,4,5)]
 library(xtable)
 xtable(cor_pearson_multi, caption = "Linear (bottom-left) and rank (top-right) correlation results for all dataset", 
@@ -296,8 +223,8 @@ cor_pearson_reg[1, 1:4] = cor_kendall_reg[1, 1:4]
 cor_pearson_reg[2, 2:4] = cor_kendall_reg[2, 2:4] 
 cor_pearson_reg[3, 3:4] = cor_kendall_reg[3, 3:4] 
 cor_pearson_reg[4, 4] = cor_kendall_reg[4, 4] 
+measure_names_reg = c("mse", "mae", "medae", "medse")
 colnames(cor_pearson_reg) = rownames(cor_pearson_reg) =  measure_names_reg[c(1,2,4,3)]
 library(xtable)
 xtable(cor_pearson_reg, caption = "Linear (bottom-left) and rank (top-right) correlation results for all dataset", 
   label = "tab:cor_reg")
-

@@ -7,7 +7,7 @@ options(java.parameters = "- Xmx1024m") # Should avoid java gc overhead
 library(OpenML)
 
 datasets = listOMLDataSets() 
-tasks = listOMLTasks()
+tasks = listOMLTasks(limit = 50000)
 tasktypes = listOMLTaskTypes()
 
 clas = subset(tasks, task.type == "Supervised Classification") # 1860 Class.-Tasks
@@ -16,18 +16,18 @@ clas = subset(tasks, task.type == "Supervised Classification") # 1860 Class.-Tas
 clas = clas[!(clas$name %in% clas$name[clas$NumberOfMissingValues != 0]), ]
 
 # Every dataset only once
-clas = clas[order(clas$did),]
+clas = clas[order(clas$data.id),]
 logic = logical(nrow(clas))
 logic = rep(TRUE, nrow(clas))
 for(i in 2:nrow(clas))
-  if(clas$did[i] == clas$did[i-1]) logic[i] = FALSE
+  if(clas$data.id[i] == clas$data.id[i-1]) logic[i] = FALSE
 clas = clas[logic,]
 
 nans = character(nrow(clas))
 # Only datasets with categorical target
 for(j in 1:nrow(clas)){
   print(j)
-  task = getOMLTask(task.id = clas$task_id[j], verbosity=0)
+  task = getOMLTask(task.id = clas$task.id[j], verbosity=0)
   nans[j] = try(class(task$input$data.set$data[, task$input$data.set$target.features]))
   save(nans, file = "nans_clas.RData")
   gc()
@@ -44,7 +44,7 @@ doppelt[100:121, c(1,3,5,7,9,10,11,14,15)]
 raus = c(2075, 9900, 9901, 3833, 3876, 3877, 3564, 3860, 10095, 3854, 9898, 7295, 7293, 7291, 3846, 3567, 3878, 2072, 3020, 7593, 3951, 3578, 3874, 3851, 3875, 3868, 3888,
          3837, 3832, 3840, 3869, 3841, 3834, 3883, 3825, 3885, 3858, 3819, 3822, 9892, 3843, 3884, 3827, 3882, 9891, 3859, 3811, 3607, 3821, 3576, 3575, 
          3817, 3816, 3818, 3857, 9940, 3731, 3879, 9941, 9942, 3842, 3872, 3836, 3828)
-clas = clas[!(clas$task_id %in% raus),]
+clas = clas[!(clas$task.id %in% raus),]
 clas = clas[order(clas$name), ]
 
 # Delete Friedman-, volcanoes- and trX-datasets
@@ -62,7 +62,7 @@ clas = clas[order(clas$NumberOfFeatures * clas$NumberOfInstances), ]
 more = logical(nrow(clas))
 for(j in 1:nrow(clas)){
   print(j)
-  task = try(getOMLTask(task.id = clas$task_id[j], verbosity=0))
+  task = try(getOMLTask(task.id = clas$task.id[j], verbosity=0))
   classen = sapply(task$input$data.set$data, class)
   indiz = which(classen == "character" | classen == "factor")
   if(any(apply(as.data.frame(task$input$data.set$data[, indiz]), 2, function(x) length(unique(x))) > 50))
@@ -73,7 +73,7 @@ clas = clas[which(more == FALSE) ,]
 # Delete equal datasets
 raus = c(9962, 3633, 40, 3692, 3660, 3794, 3770, 3771, 3772, 3053, 9936, 3736, 10098, 10099, 10100, 3903, 3672, 3681, 3839, 9943, 3688, 9972, 3618, 3764, 145, 202, 3925, 3895, 3990, 151, 
          220, 221, 224, 226, 225, 228, 227, 3506, 205, 207, 2262, 209, 150, 138, 210, 211, 152, 148, 146,137, 155, 132, 2136, 133, 216, 144, 201, 141, 140)
-clas = clas[!(clas$task_id %in% raus),]
+clas = clas[!(clas$task.id %in% raus),]
 
 # Split into small and big datasets
 clas_small = clas[which(clas$NumberOfInstances < 1000 & clas$NumberOfFeatures < 1000 & clas$NumberOfClasses < 30),]
@@ -98,18 +98,18 @@ reg = subset(tasks, task_type == "Supervised Regression") # 1854 Regr.-Tasks
 reg = reg[!(reg$name %in% reg$name[reg$NumberOfMissingValues != 0]), ]
 
 # Every dataset only once
-reg = reg[order(reg$did),]
+reg = reg[order(reg$data.id),]
 logic = logical(nrow(reg))
 logic = rep(TRUE, nrow(reg))
 for(i in 2:nrow(reg))
-  if(reg$did[i] == reg$did[i-1]) logic[i] = FALSE
+  if(reg$data.id[i] == reg$data.id[i-1]) logic[i] = FALSE
 reg = reg[logic,]
 
 nans = character(nrow(reg))
 # Only datasets with integer/numeric target
-for(j in 1:length(reg$task_id)){
+for(j in 1:length(reg$task.id)){
   print(j)
-  task = getOMLTask(task.id = reg$task_id[j], verbosity=0)
+  task = getOMLTask(task.id = reg$task.id[j], verbosity=0)
   nans[j] = try(class(task$input$data.set$data[, task$input$data.set$target.features]))
   save(nans, file = "/home/probst/Random_Forest/Parameter_Tuning/Simulation/Regression/nans_reg.RData")
   gc()
@@ -126,7 +126,7 @@ doppelt[, c(1,3,5,7,9,10,11,14,15)]
 
 raus = c(4892, 4883, 4876, 5025, 4874)
 
-reg = reg[!(reg$task_id %in% raus),]
+reg = reg[!(reg$task.id %in% raus),]
 
 reg = reg[order(reg$name), ]
 
@@ -153,7 +153,7 @@ reg = reg[-121, ]
 more2 = logical(nrow(reg))
 for(j in 1:nrow(reg)){
   print(j)
-  task = try(getOMLTask(task.id = reg$task_id[j], verbosity=0))
+  task = try(getOMLTask(task.id = reg$task.id[j], verbosity=0))
   classen = sapply(task$input$data.set$data, class)
   indiz = which(classen == "character" | classen == "factor")
   if(any(apply(as.data.frame(task$input$data.set$data[, indiz]), 2, function(x) length(unique(x))) > 50))
@@ -163,7 +163,7 @@ reg = reg[more2 == FALSE ,]
 
 # Delete equal datasets
 raus = c(4993, 5013, 5023, 2280, 2313)
-reg = reg[!(reg$task_id %in% raus),]
+reg = reg[!(reg$task.id %in% raus),]
 
 # Split into small and big datasets
 reg_small = reg[which(reg$NumberOfInstances < 1000 & reg$NumberOfFeatures < 1000),]

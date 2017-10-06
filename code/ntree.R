@@ -1,11 +1,13 @@
 library(randomForest)
 library(OpenML)
 library(mlr)
+require(devtools)
+install_version("batchtools", version = "0.9.0", repos = "http://cran.us.r-project.org")
 library(batchtools)
 
 saveOMLConfig(apikey = "6df93acdb13899f48fd6bd689b0dd7cf", arff.reader = "RWeka", overwrite=TRUE)
 
-dir =  "../Supplementary_File_5"
+dir =  "."
 setwd(paste0(dir))
 dir = getwd()
 source(paste0(dir,"/code/ntree_defs.R"))
@@ -67,5 +69,5 @@ getErrorMessages()
 findErrors()
 
 min(getJobStatus()$started, na.rm = T)
-max(getJobStatus()$done, na.rm = T) # 7 Minuten -> one night; ca. 1,30h mit 10 iter -> 150h mit 1000 iter
+max(getJobStatus()$done, na.rm = T) # 7 minutes -> one night; ca. 1,30h with 10 iter -> 150h with 1000 iter
 
