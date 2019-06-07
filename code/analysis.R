@@ -3,8 +3,8 @@ load("./results/results.RData")
 
 
 # Dataset complexity analysis
-load(paste(dir,"./results/clas.RData", sep = ""))
-load(paste(dir,"./results/reg.RData", sep = ""))
+load("./results/clas.RData")
+load("./results/reg.RData")
 tasks = rbind(clas_small, reg_small)
 plot(tasks$number.of.instances, tasks$number.of.features, ylim = c(0,200))
 
